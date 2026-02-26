@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n FRONTEND,BACKEND -c green,blue \"npm --prefix frontend run dev\" \"php -S 127.0.0.1:8000 -t backend/public\"",
+    "dev:backend": "php -S 127.0.0.1:8000 -t backend/public",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "install:all": "npm i && npm --prefix frontend i"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
