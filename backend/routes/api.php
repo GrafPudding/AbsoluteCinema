@@ -268,3 +268,38 @@ Route::post('/showtimes/{showtime}/cancel', function (Showtime $showtime, Reques
 
     return response()->json(['ok' => true]);
 });
+
+Route::get('/admin/movies', function () {
+    $movies = Movie::query()->with('showtimes')->get();
+    return $movies;
+});
+
+Route::post('/admin/movies', function (Request $request) {
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'starts_at' => 'required|date',
+        'auditorium' => 'nullable|string|max:50',
+        'duration_minutes' => 'nullable|integer|min:1',
+        'description' => 'nullable|string',
+    ]);
+
+    $movie = Movie::query()->create([
+        'title' => $validated['title'],
+        'duration_minutes' => $validated['duration_minutes'] ?? null,
+        'description' => $validated['description'] ?? null,
+        'poster_url' => null,
+    ]);
+
+    Showtime::query()->create([
+        'movie_id' => $movie->id,
+        'starts_at' => $validated['starts_at'],
+        'auditorium' => $validated['auditorium'] ?? 'A',
+    ]);
+
+    return response()->json(['ok' => true, 'movie' => $movie->load('showtimes')], 201);
+});
+
+Route::delete('/admin/movies/{movie}', function (Movie $movie) {
+    $movie->delete();
+    return response()->json(['ok' => true]);
+});
