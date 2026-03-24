@@ -1,0 +1,274 @@
+openapi: 3.0.3
+info:
+  title: AbsoluteCinema API
+  description: Cinema ticket booking API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api
+
+paths:
+  /test:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
+  /movies:
+    get:
+      summary: List all movies
+      responses:
+        '200':
+          description: List of movies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    title:
+                      type: string
+                    duration_minutes:
+                      type: integer
+                      nullable: true
+                    description:
+                      type: string
+                      nullable: true
+
+  /movies/{movie}/showtimes:
+    get:
+      summary: Get showtimes for a movie
+      parameters:
+        - name: movie
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of showtimes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    movie_id:
+                      type: integer
+                    starts_at:
+                      type: string
+                      format: date-time
+                    auditorium:
+                      type: string
+
+  /showtimes/{showtime}/enter:
+    post:
+      summary: Enter showtime booking (queue system)
+      parameters:
+        - name: showtime
+          in: path
+          required: true
+          schema:
+            type: integer
+      headers:
+        X-Client-Token:
+          description: Client token for presence tracking
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Queue status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  allowed:
+                    type: boolean
+                  position:
+                    type: integer
+                    nullable: true
+                  capacity:
+                    type: integer
+                  ttl_seconds:
+                    type: integer
+
+  /showtimes/{showtime}/seats:
+    get:
+      summary: Get seat layout and availability
+      parameters:
+        - name: showtime
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Seat information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  showtime:
+                    type: object
+                  layout:
+                    type: object
+                    properties:
+                      rows:
+                        type: integer
+                      cols:
+                        type: integer
+                  seats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        seat:
+                          type: string
+                        status:
+                          type: string
+                          enum: [available, reserved, bought]
+                        reservedByMe:
+                          type: boolean
+
+  /showtimes/{showtime}/reserve:
+    post:
+      summary: Reserve seats (10 min hold)
+      parameters:
+        - name: showtime
+          in: path
+          required: true
+          schema:
+            type: integer
+      headers:
+        X-Client-Token:
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                seats:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  maxItems: 5
+      responses:
+        '200':
+          description: Seats reserved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  reserved:
+                    type: array
+                    items:
+                      type: string
+                  ttl_seconds:
+                    type: integer
+        '400':
+          description: Missing client token
+        '409':
+          description: Seat already reserved/bought
+        '422':
+          description: Validation error
+
+  /showtimes/{showtime}/buy:
+    post:
+      summary: Purchase reserved seats
+      parameters:
+        - name: showtime
+          in: path
+          required: true
+          schema:
+            type: integer
+      headers:
+        X-Client-Token:
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                seats:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  maxItems: 5
+      responses:
+        '200':
+          description: Purchase successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  bought:
+                    type: array
+                    items:
+                      type: string
+
+  /showtimes/{showtime}/cancel:
+    post:
+      summary: Cancel seat reservations
+      parameters:
+        - name: showtime
+          in: path
+          required: true
+          schema:
+            type: integer
+      headers:
+        X-Client-Token:
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                seats:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Reservations cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
